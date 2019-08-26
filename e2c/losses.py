@@ -10,3 +10,4 @@ def kl_bernoulli(p, q, eps=1e-8):
     kl = p * torch.log((p + eps) / (q + eps)) + \
          (1 - p) * torch.log((1 - p + eps) / (1 - q + eps))
     return kl.mean()
+
