@@ -1,6 +1,5 @@
 import torch
-from torch.autograd import Variable
-from torch import nn
+from torch import nn,distributions
 from .configs import load_config
 from .losses import binary_crossentropy
 
@@ -8,18 +7,19 @@ from .losses import binary_crossentropy
 class VAE(torch.nn.Module):
     def __init__(self, dim_in, dim_z, config='pendulum'):
         super(VAE, self).__init__()
+        self.dim_z = dim_z
         enc, trans, dec = load_config(config)
         self.encoder = enc(dim_in, dim_z)
         self.decoder = dec(dim_z, dim_in)
 
+        self.prior = distributions.Normal(0,1)
     def reparam(self, mean, logvar):
         std = logvar.mul(0.5).exp_()
         self.z_mean = mean
         self.z_sigma = std
-        eps = torch.FloatTensor(std.size()).normal_()
+        eps = self.prior.sample()
         if std.data.is_cuda:
             eps.cuda()
-        eps = Variable(eps)
         return eps.mul(std).add_(mean)
 
     def forward(self, x):
@@ -32,7 +32,8 @@ class VAE(torch.nn.Module):
         return x_dec
 
     def latent_embeddings(self, x):
-        return self.encoder(x)[0]
+        with torch.no_grad():
+            return self.encoder(x)[0]
 
 
 def compute_loss(x_pred, x_true, z_mean, z_logsigma, mse=False):
