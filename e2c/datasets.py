@@ -249,7 +249,7 @@ class GymPendulumDatasetV2(Dataset):
 				'before': before_file,
 				'after': after_file,
 				'control': u.tolist(),
-				'abg_r':[r],
+				'avg_r':[r],
 			})
 
 		with open(path.join(output_dir, 'data.json'), 'wt') as outfile:
