@@ -5,7 +5,7 @@ set of configuration.
 """
 import torch
 from torch import nn,distributions
-
+from torch.nn import functional as F
 
 class Encoder(nn.Module):
     def __init__(self, enc, dim_in, dim_out):
@@ -63,6 +63,68 @@ class Transition(nn.Module):
         z_next_cov = A.bmm(z_cov).bmm(A.transpose(1,2))
         # return sample, NormalDistribution(d, Q.sigma, Q.logsigma, v=v, r=r)
         return sample, distributions.MultivariateNormal(d,z_next_cov)
+
+
+class Quantize(nn.Module):
+    def __init__(self, n_e, e_dim, decay=0.99, eps=1e-8):
+        super(Quantize, self).__init__()
+
+        self.e_dim = e_dim
+        self.n_e = n_e
+        self.decay = decay
+        self.eps = eps
+
+        embed = torch.randn(n_e, e_dim)
+        self.register_buffer('embed', embed)
+        self.register_buffer('cluster_size', torch.zeros(n_e))
+        self.register_buffer('embed_to_avg', embed.clone())
+
+    def em_center(self, indices):
+        assert indices.dim() == 1
+        assert indices.dtype == torch.int64
+        return F.embedding(indices, self.embed)
+
+    def similarity(self, x):
+        flatten = x.view(-1, self.e_dim)
+        sim = (self.embed / (self.embed.norm(dim=1, keepdim=True) ** 2)).mm(flatten.transpose(0, 1)).transpose(0, 1)
+        return sim
+
+    def hard_assign(self, x):
+        x = x.view(-1,self.e_dim)
+        sim = self.similarity(x)
+        _, embed_ind = (sim).max(1)
+        quantize = self.em_center(embed_ind)
+
+        return quantize,embed_ind
+
+    def hard_assign_train(self,x):
+        x = x.view(-1, self.e_dim)
+        sim = self.similarity(x)
+        _, embed_ind = (sim).max(1)
+        embed_onehot = F.one_hot(embed_ind, self.n_e).type(x.dtype)
+        quantize = self.em_center(embed_ind)
+        if self.training:
+            with torch.no_grad():
+                self.cluster_size.data.mul_(self.decay).add_(
+                    1 - self.decay, embed_onehot.sum(0)
+                )
+                embed_sum = embed_onehot.transpose(0, 1).mm(x)
+                self.embed_to_avg.data.mul_(self.decay).add_(1 - self.decay, embed_sum)
+                n = self.cluster_size.sum()
+                cluster_size = (
+                        (self.cluster_size + self.eps) / (n + self.n_e * self.eps) * (n + self.eps)
+                )
+                embed_normalized = self.embed_to_avg / cluster_size.unsqueeze(1)
+                self.embed.data.copy_(embed_normalized)
+        diff = (quantize.detach() - x).pow(2).mean()
+        return diff
+
+    def forward(self, x):
+        if self.training:
+            diff = self.hard_assign_train(x)
+            return diff
+        else:
+            return self.hard_assign(x)
 
 
 class PlaneEncoder(Encoder):
@@ -169,7 +231,8 @@ class PendulumTransition(Transition):
 
 _CONFIG_MAP = {
     'plane': (PlaneEncoder, PlaneTransition, PlaneDecoder),
-    'pendulum': (PendulumEncoder, PendulumTransition, PendulumDecoder)
+    'pendulum': (PendulumEncoder, PendulumTransition, PendulumDecoder),
+    'vq-pendulum':(PendulumEncoder,PendulumTransition,Quantize,PendulumDecoder)
 }
 
 
@@ -181,7 +244,5 @@ def load_config(name):
     if name not in _CONFIG_MAP.keys():
         raise ValueError("Unknown config: %s", name)
     return _CONFIG_MAP[name]
-
-from .e2c import NormalDistribution
 
 __all__ = ['load_config']

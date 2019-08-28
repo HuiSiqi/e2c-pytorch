@@ -1,6 +1,6 @@
 from e2c import datasets,e2c,utils
 import argparse
-from torch.utils.data import DataLoader,Sampler
+from torch.utils.data import DataLoader
 from torch import optim
 import torch
 import os
@@ -42,6 +42,8 @@ if __name__ == '__main__':
 
 	#save args
 	config = vars(args)
+	if not os.path.exists(args.log_dir):
+		os.makedirs(args.log_dir)
 	with open(os.path.join(args.log_dir,'config.json'),'wt') as f:
 		json.dump(config,f,cls=utils.DateEnc,indent=2)
 
@@ -49,7 +51,7 @@ if __name__ == '__main__':
 	writer = SummaryWriter(log_dir=os.path.join(args.log_dir,'train_result'))
 
 	#todo data preparation
-	dataset = datasets.GymPendulumDatasetV2(dir='dataset/pendulum')
+	dataset = datasets.GymPendulumDatasetV2(dir='/home/pikey/Data/e2c/dataset/pendulum')
 	dataloader = DataLoader(dataset,args.bs,shuffle=True,
                         num_workers=16,drop_last=True)
 
@@ -60,7 +62,7 @@ if __name__ == '__main__':
 	step= 0
 	for i in range(args.epoch):
 		j = 0
-		for before,a,after in dataloader:
+		for before,a,r,after in dataloader:
 			a = a.float()
 			step+=1
 			j+=1

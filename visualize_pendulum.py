@@ -40,11 +40,11 @@ def plot(data):
 
 if __name__ == '__main__':
 	BS = 256
-	dset = datasets.GymPendulumDatasetV2_visual('visual_dataset')
+	dset = datasets.GymPendulumDatasetV2_visual('/home/pikey/Data/e2c/visual_dataset')
 	dloader = DataLoader(dset, BS, shuffle=False)
 	#
 	model = e2c.E2C(dim_in=datasets.GymPendulumDatasetV2_visual.width * datasets.GymPendulumDatasetV2_visual.height,
 	                dim_z=2,dim_u=1)
-	utils.load_model(model, '/home/pikey/Data/e2c/e2clog','epoch49.pkl')
+	utils.load_model(model, '/home/pikey/Data/e2c/e2clog','epoch499.pkl')
 
 	visualize(model,dloader)
