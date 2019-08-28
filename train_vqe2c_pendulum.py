@@ -49,7 +49,7 @@ if __name__ == '__main__':
 	with open(os.path.join(args.log_dir,'config.json'),'wt') as f:
 		json.dump(config,f,cls=utils.DataEnc,indent=2)
 
-	gpu='cpu'
+	gpu=0
 	writer = SummaryWriter(log_dir=os.path.join(args.log_dir,'train_result'))
 
 	#todo data preparation
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 			loss.backward()
 			opt.step()
 			print('loss_rec:{}, loss_trans:{}, loss_commit:{}'.format(loss_rec.item(),loss_trans.item(),loss_commit.item()))
-
+			# print('embed:{}'.format(model.quantize.embed.cpu().numpy()))
 			#todo log
 			#save img
 			if step%10==0:
@@ -116,12 +116,13 @@ if __name__ == '__main__':
 				utils.save_img(img, dir, rec_file)
 				writer.add_image('dec_z_next',img,step)
 
-			if step%100==0:
+			if step%1000==0:
 				#todo save the test results
-				fig_x_cls,fig_z,fig_z_cls = visualize_vqe2c_pendulum.visualize(model, test_dataloader)
+				fig_x_cls,fig_z,fig_z_cls,fig_t_c = visualize_vqe2c_pendulum.visualize(model, test_dataloader,gpu=gpu)
 				utils.save_fig(fig_x_cls,os.path.join(args.log_dir,'fig_x_cls'),str(step)+'.png')
 				utils.save_fig(fig_z_cls,os.path.join(args.log_dir,'fig_z_cls'),str(step)+'.png')
 				utils.save_fig(fig_z,os.path.join(args.log_dir,'fig_z'),str(step)+'.png')
+				utils.save_fig(fig_t_c,os.path.join(args.log_dir,'fig_t_c'),str(step)+'.png')
 
 			#weight histogram
 			# for _, (name,param) in enumerate(model.named_parameters()):

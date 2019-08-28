@@ -17,7 +17,6 @@ class Encoder(nn.Module):
     def forward(self, x):
         return self.m(x).chunk(2, dim=1)
 
-
 class Decoder(nn.Module):
     def __init__(self, dec, dim_in, dim_out):
         super(Decoder, self).__init__()
@@ -27,7 +26,6 @@ class Decoder(nn.Module):
 
     def forward(self, z):
         return self.m(z)
-
 
 class Transition(nn.Module):
     def __init__(self, trans, dim_z, dim_u):
@@ -66,7 +64,7 @@ class Transition(nn.Module):
 
 
 class Quantize(nn.Module):
-    def __init__(self, n_e, e_dim, decay=0.99, eps=1e-8):
+    def __init__(self, n_e, e_dim, decay=0.99, eps=1e-5):
         super(Quantize, self).__init__()
 
         self.e_dim = e_dim
@@ -74,9 +72,9 @@ class Quantize(nn.Module):
         self.decay = decay
         self.eps = eps
 
-        embed = torch.randn(n_e, e_dim)
+        embed = F.normalize(torch.randn(n_e, e_dim))
         self.register_buffer('embed', embed)
-        self.register_buffer('cluster_size', torch.zeros(n_e))
+        self.register_buffer('cluster_size', torch.ones(n_e))
         self.register_buffer('embed_to_avg', embed.clone())
 
     def em_center(self, indices):
@@ -105,17 +103,17 @@ class Quantize(nn.Module):
         quantize = self.em_center(embed_ind)
         if self.training:
             with torch.no_grad():
-                self.cluster_size.data.mul_(self.decay).add_(
+                self.cluster_size.mul_(self.decay).add_(
                     1 - self.decay, embed_onehot.sum(0)
                 )
                 embed_sum = embed_onehot.transpose(0, 1).mm(x)
-                self.embed_to_avg.data.mul_(self.decay).add_(1 - self.decay, embed_sum)
+                self.embed_to_avg.mul_(self.decay).add_(1 - self.decay, embed_sum)
                 n = self.cluster_size.sum()
-                cluster_size = (
-                        (self.cluster_size + self.eps) / (n + self.n_e * self.eps) * (n + self.eps)
-                )
+
+                cluster_size = (self.cluster_size + self.eps) / (n + self.n_e * self.eps) * n
+
                 embed_normalized = self.embed_to_avg / cluster_size.unsqueeze(1)
-                self.embed.data.copy_(embed_normalized)
+                self.embed.copy_(embed_normalized)
         diff = (quantize.detach() - x).pow(2).mean()
         return diff
 

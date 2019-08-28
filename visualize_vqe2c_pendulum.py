@@ -27,13 +27,16 @@ def visualize(model,dataloader,gpu='cpu'):
 		z = np.vstack((z,state))
 		cls+=indices
 	cls = np.array(cls) / model.quantize.n_e
+	c = model.quantize.embed.cpu().numpy()
+
 	model.train()
 	fig_x_cls = plot(x,c_indices=cls)
 	fig_z = plot(z)
 	fig_z_cls = plot(z,c_indices=cls)
-	return fig_x_cls,fig_z,fig_z_cls
+	fig_topic_center = plot(c)
+	return fig_x_cls,fig_z,fig_z_cls,fig_topic_center
 
-def plot(data,c_indices = None):
+def plot(data,c_indices = None,s=3):
 	#todo draw
 	figure = plt.figure()
 
@@ -44,10 +47,10 @@ def plot(data,c_indices = None):
 		c = c_indices
 	if min(data.shape)==2:
 		axes = figure.add_subplot(1,1,1)
-		axes.scatter(x=data[:,0],y=data[:,1],c=c,cmap='rainbow',s=3)
+		axes.scatter(x=data[:,0],y=data[:,1],c=c,cmap='rainbow',s=s)
 	elif min(data.shape)==3:
 		axes = Axes3D(figure)
-		axes.scatter(xs=data[:, 0], ys=data[:, 1],zs=data[:, 2],c=c, cmap='rainbow', s=3)
+		axes.scatter(xs=data[:, 0], ys=data[:, 1],zs=data[:, 2],c=c, cmap='rainbow', s=s)
 
 	return figure
 
