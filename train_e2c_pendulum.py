@@ -45,7 +45,7 @@ if __name__ == '__main__':
 	if not os.path.exists(args.log_dir):
 		os.makedirs(args.log_dir)
 	with open(os.path.join(args.log_dir,'config.json'),'wt') as f:
-		json.dump(config,f,cls=utils.DateEnc,indent=2)
+		json.dump(config,f,cls=utils.DataEnc,indent=2)
 
 	gpu=0
 	writer = SummaryWriter(log_dir=os.path.join(args.log_dir,'train_result'))

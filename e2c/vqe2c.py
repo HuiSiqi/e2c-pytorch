@@ -11,6 +11,7 @@ class VQE2C(nn.Module):
         self.trans = trans(dim_z, dim_u)
         self.quantize = quantize(topic_num,dim_z)
         self.prior = distributions.Normal(0, 1)
+
     def encode(self, x):
         return self.encoder(x)
 
@@ -56,6 +57,8 @@ class VQE2C(nn.Module):
     def latent_embeddings(self, x):
         return self.encode(x)[0]
 
+    def topic(self,x):
+        return self.quantize(x)
 
     def predict(self, X, U):
         mean, logvar = self.encode(X)
