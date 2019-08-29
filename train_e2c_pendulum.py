@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 import numpy as np
 import json
+import visualize_e2c_pendulum
 import cv2
 
 parser = argparse.ArgumentParser(description='train vae')
@@ -53,8 +54,11 @@ if __name__ == '__main__':
 	#todo data preparation
 	dataset = datasets.GymPendulumDatasetV2(dir='/home/pikey/Data/e2c/dataset/pendulum')
 	dataloader = DataLoader(dataset,args.bs,shuffle=True,
-                        num_workers=16,drop_last=True)
+                        num_workers=16,drop_last=True,pin_memory=True)
 
+	test_dataset = datasets.GymPendulumDatasetV2(dir='/home/pikey/Data/e2c/visual_dataset_pendulum')
+	test_dataloader = DataLoader(test_dataset, args.bs, shuffle=True,
+	                        num_workers=16, drop_last=False,pin_memory=True)
 	model = e2c.E2C(datasets.GymPendulumDatasetV2.height*datasets.GymPendulumDatasetV2.width,dim_z=args.z_dim,dim_u=1)
 	model.to(gpu)
 	opt = optim.Adam(model.parameters(),lr=args.lr)
@@ -93,13 +97,18 @@ if __name__ == '__main__':
 
 				writer.add_image('raw_rec',img,step)
 			#weight histogram
-			for _, (name,param) in enumerate(model.named_parameters()):
-				if 'bn' not in name:
-					writer.add_histogram(name,param,step)
+			# for _, (name,param) in enumerate(model.named_parameters()):
+			# 	if 'bn' not in name:
+			# 		writer.add_histogram(name,param,step)
 			#loss
 			writer.add_scalar('loss',loss.item(),step)
 			writer.add_scalar('loss_rec',loss_rec.item(),step)
 			writer.add_scalar('loss_trans',loss_trans.item(),step)
+			if step%1000==0:
+				#todo save the test results
+				fig_z = visualize_e2c_pendulum.visualize(model, test_dataloader,gpu=gpu)
+				utils.save_fig(fig_z,os.path.join(args.log_dir,'fig_z'),str(step)+'.png')
+
 		if not os.path.exists(os.path.join(args.log_dir, 'model')):
 			os.makedirs(os.path.join(args.log_dir, 'model'))
 		torch.save(model.state_dict(),os.path.join(args.log_dir,'model','epoch{}.pkl'.format(i)))
