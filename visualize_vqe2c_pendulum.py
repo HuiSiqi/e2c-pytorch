@@ -54,3 +54,4 @@ def plot(data,c_indices = None,s=3):
 
 	return figure
 
+

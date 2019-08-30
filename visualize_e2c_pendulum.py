@@ -11,17 +11,20 @@ def visualize(model,dataloader,gpu='cpu'):
 	x = np.empty(shape=(0,2))
 	z = np.empty(shape=(0,dim_z))
 	print('______test______')
-	for image,state in tqdm(dataloader):
+	model.eval()
+	for image,state in dataloader:
 	# 	#todo state sample
 		state  = np.array(state.numpy())
 		x = np.vstack((x,state))
 		#todo latent sample
 		image = image.to(gpu)
-		state = model.latent_embeddings(image.view(image.shape[0],-1))
+		state = model.latent_embeddings(image.view(image.shape[0], -1))
 		state = state.detach().cpu().numpy()
 		z = np.vstack((z,state))
-	# plot(x)
+	model.train()
+	# fig_x = plot(x)
 	fig_z = plot(z)
+	# fig_x = plot(x)
 	return fig_z
 
 def plot(data,s=3):

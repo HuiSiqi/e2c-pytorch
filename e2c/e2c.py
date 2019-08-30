@@ -126,11 +126,11 @@ def compute_loss(x_dec, x_next_pred_dec, x_next_dec,x, x_next,
 
 
     prior = distributions.MultivariateNormal(torch.zeros_like(Qz.mean[0]),torch.diag(torch.ones_like(Qz.mean[0])))
-    KLD = distributions.kl_divergence(Qz,prior)
+    KLD = distributions.kl_divergence(Qz,prior)+distributions.kl_divergence(Qz_next,prior)
 
     # ELBO
     bound_loss = x_reconst_loss.add(x_next_reconst_loss).add(KLD)
     trans_loss = distributions.kl_divergence(Qz_next_pred, Qz_next).add(x_next_pre_reconst_loss)
-    return bound_loss.mean(), trans_loss.mean()
+    return bound_loss.mean()/2, trans_loss.mean()
 
 from .configs import load_config

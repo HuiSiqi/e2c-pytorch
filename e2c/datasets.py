@@ -304,7 +304,24 @@ class GymPendulumDatasetV2_visual(GymPendulumDatasetV2):
 			th_dir = str(theta_norm(th))
 			if not path.exists(os.path.join(output_dir,th_dir)):
 				os.makedirs(os.path.join(output_dir,th_dir))
-			for thdot in np.linspace(-env.max_speed,env.max_speed,thdot_num):
+			for thdot in np.linspace(0,env.max_speed,int(thdot_num/2)):
+				state = np.array([th, thdot])
+				initial_state = state
+				before1, before2 = GymPendulumDatasetV2._render_state_fully_observed(env, state)
+				before = np.hstack((before1, before2))
+
+				state_file = os.path.join(th_dir,'th{:03f}-thdot-{:03f}.jpg'.format(th, thdot))
+				plt.imsave(path.join(output_dir,state_file), before)
+
+				samples.append({
+					'state': initial_state.tolist(),
+					'img': state_file,
+				})
+		for th in tqdm(np.linspace(np.pi*2,0,th_num)):
+			th_dir = str(theta_norm(th))
+			if not path.exists(os.path.join(output_dir,th_dir)):
+				os.makedirs(os.path.join(output_dir,th_dir))
+			for thdot in np.linspace(0,-env.max_speed,int(thdot_num/2)):
 				state = np.array([th, thdot])
 				initial_state = state
 				before1, before2 = GymPendulumDatasetV2._render_state_fully_observed(env, state)
