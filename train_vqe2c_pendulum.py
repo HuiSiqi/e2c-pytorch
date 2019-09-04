@@ -29,9 +29,10 @@ train.add_argument('--bs',type=int,default=256,metavar='BS',help='training batch
 train.add_argument('--lr',type=float,default=1e-3,metavar='lr',help='learning rate')
 train.add_argument('--loss',default=vqe2c.compute_loss,metavar='LOSS',help='loss function')
 
-log.add_argument('--log-dir',type=str,default='/home/pikey/Data/e2c/vqe2c-log',help='log directory')
+log.add_argument('--log-dir',type=str,default='/home/pikey/Data/e2c/log/pendulum/vqe2c',help='log directory')
 
 model.add_argument('--z-dim',type=int,default=2,metavar='dz',help='latent_space_dimension')
+model.add_argument('--topic_num',type=int,default=10,metavar='dz',help='latent_space_dimension')
 
 def get_args():
 	return parser.parse_args()
@@ -53,15 +54,15 @@ if __name__ == '__main__':
 	writer = SummaryWriter(log_dir=os.path.join(args.log_dir,'train_result'))
 
 	#todo data preparation
-	dataset = datasets.GymPendulumDatasetV2(dir='/home/pikey/Data/e2c/dataset/pendulum')
+	dataset = datasets.GymPendulumDatasetV2(dir='/home/pikey/Data/e2c/dataset/pendulum/train')
 	dataloader = DataLoader(dataset,args.bs,shuffle=True,
                         num_workers=16,drop_last=True,pin_memory=True)
 
-	test_dataset = datasets.GymPendulumDatasetV2_visual('/home/pikey/Data/e2c/visual_dataset_pendulum')
+	test_dataset = datasets.GymPendulumDatasetV2_visual('/home/pikey/Data/e2c/dataset/pendulum/smalltest')
 	test_dataloader = DataLoader(test_dataset,args.bs,shuffle=False,num_workers=256,drop_last=False,pin_memory=True)
 
 	model = vqe2c.VQE2C(datasets.GymPendulumDatasetV2.height*datasets.GymPendulumDatasetV2.width,
-	                    dim_z=args.z_dim,dim_u=1,topic_num=4)
+	                    dim_z=args.z_dim,dim_u=1,topic_num=args.topic_num)
 	model.to(gpu).train()
 	opt = optim.Adam(model.parameters(),lr=args.lr)
 

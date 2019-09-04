@@ -43,7 +43,7 @@ train.add_argument('--bs',type=int,default=256,metavar='BS',help='training batch
 train.add_argument('--lr',type=float,default=1e-3,metavar='lr',help='learning rate')
 train.add_argument('--loss',default=vae.compute_loss,metavar='LOSS',help='loss function')
 
-log.add_argument('--log-dir',type=str,default='./log',help='log directory')
+log.add_argument('--log-dir',type=str,default='/home/pikey/Data/e2c/log/vae',help='log directory')
 
 model.add_argument('--z-dim',type=int,default=2,metavar='dz',help='latent_space_dimension')
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 	writer = SummaryWriter(log_dir=os.path.join(args.log_dir,'train_result'))
 
 	#todo data preparation
-	dataset = datasets.GymPendulumDatasetV2(dir='dataset/pendulum')
+	dataset = datasets.GymPendulumDatasetV2(dir='/home/pikey/Data/e2c/dataset/pendulum/train')
 	dataloader = DataLoader(dataset,args.bs,shuffle=True,
                         num_workers=16,drop_last=True)
 
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 	step= 0
 	for i in range(args.epoch):
 		j = 0
-		for before,a,after in dataloader:
+		for before,a,r,after in dataloader:
 			step+=1
 			j+=1
 			before_reconstruction = model(before.view(args.bs,-1))
@@ -107,9 +107,9 @@ if __name__ == '__main__':
 			                 ,step)
 			writer.add_image('rec',img,step)
 			#weight histogram
-			for _, (name,param) in enumerate(model.named_parameters()):
-				if 'bn' not in name:
-					writer.add_histogram(name,param,step)
+			# for _, (name,param) in enumerate(model.named_parameters()):
+			# 	if 'bn' not in name:
+			# 		writer.add_histogram(name,param,step)
 			#loss
 			writer.add_scalar('loss',loss.item(),step)
 		if not os.path.exists(os.path.join(args.log_dir, 'model')):

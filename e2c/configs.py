@@ -82,23 +82,25 @@ class Quantize(nn.Module):
         assert indices.dtype == torch.int64
         return F.embedding(indices, self.embed)
 
-    def similarity(self, x):
+    def distance(self, x):
         flatten = x.view(-1, self.e_dim)
-        sim = (self.embed / (self.embed.norm(dim=1, keepdim=True) ** 2)).mm(flatten.transpose(0, 1)).transpose(0, 1)
-        return sim
+        y =self.embed.unsqueeze(-1).repeat(1,1,flatten.shape[0])
+        x = flatten.unsqueeze(0).transpose(-1,-2)
+        dis = ((y-x)**2).sum(1).sqrt().squeeze(1).transpose(0,1)
+        return dis
 
     def hard_assign(self, x):
         x = x.view(-1,self.e_dim)
-        sim = self.similarity(x)
-        _, embed_ind = (sim).max(1)
+        dis = self.distance(x)
+        _, embed_ind = (dis).min(1)
         quantize = self.em_center(embed_ind)
 
         return quantize,embed_ind
 
     def hard_assign_train(self,x):
         x = x.view(-1, self.e_dim)
-        sim = self.similarity(x)
-        _, embed_ind = (sim).max(1)
+        dis = self.distance(x)
+        _, embed_ind = (dis).min(1)
         embed_onehot = F.one_hot(embed_ind, self.n_e).type(x.dtype)
         quantize = self.em_center(embed_ind)
         if self.training:
